@@ -12,14 +12,15 @@ const repos = fs.readFileSync('list.txt', 'utf8').split('\n').filter(l => l[0] !
 repos.forEach((repo, index, array) => {
   const repoName = repo.split('/').pop()
   console.log(`(${index+1}/${array.length}) Cloning ${repoName}`)
-  child_process.execSync(`git clone ${repo} /tmp/multi-gource${runID}/repos/${repoName}; gource --output-custom-log /tmp/multi-gource${runID}/logs/${repoName}.txt /tmp/multi-gource${runID}/repos/${repoName}`)
-})
-
-console.log('Combining logs')
-repos.forEach((repo) => {
-  const repoName = repo.split('/').pop()
-  // This has only been test on Mac, and may act differently on Linux when using GNU sed
-  child_process.execSync(`sed -E "s#(.+)\\|#\\1|/${repoName}#" /tmp/multi-gource${runID}/logs/${repoName}.txt > /tmp/multi-gource${runID}/logs/${repoName}-foldered.txt`)
+  try {
+    // Clone the repo & create the log file
+    child_process.execSync(`git clone ${repo} /tmp/multi-gource${runID}/repos/${repoName} && gource --output-custom-log /tmp/multi-gource${runID}/logs/${repoName}.txt /tmp/multi-gource${runID}/repos/${repoName}`)
+    // Combine the logs
+    // This has only been test on Mac, and may act differently on Linux when using GNU sed
+    child_process.execSync(`sed -E "s#(.+)\\|#\\1|/${repoName}#" /tmp/multi-gource${runID}/logs/${repoName}.txt > /tmp/multi-gource${runID}/logs/${repoName}-foldered.txt`)
+  } catch (e) {
+    console.warn(`[warn] Not able to clone ${repoName}. Is this an empty repo?`)
+  }
 })
 child_process.execSync(`cat /tmp/multi-gource${runID}/logs/*-foldered.txt | sort -n > /tmp/multi-gource${runID}/logs/all.txt`)
 
